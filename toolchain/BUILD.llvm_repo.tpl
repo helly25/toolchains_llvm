@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
 package(default_visibility = ["//visibility:public"])
 
 # Some targets may need to directly depend on these files.
@@ -268,4 +270,37 @@ filegroup(
         ],
         allow_empty = True,
     ),
+)
+
+# Clang's C++ API as a linkable shared library (libclang-cpp, which statically
+# embeds LLVM) together with the LLVM/Clang development headers, for tools that
+# embed clang in-process (e.g. dependency scanning, clang-tidy-style tooling).
+# Empty on distributions that ship no libclang-cpp. Headers are exposed via
+# `includes` (i.e. `-isystem`); the layering_check and parse_headers features
+# are disabled because LLVM's headers are not standalone-parseable and form one
+# large layer. Note: LLVM is built without RTTI, so dependents that derive from
+# clang's polymorphic types must compile with `-fno-rtti`.
+cc_library(
+    name = "clang_cpp",
+    srcs = glob(
+        [
+            "lib/libclang-cpp.dylib",
+            "lib/libclang-cpp.so*",
+        ],
+        allow_empty = True,
+    ),
+    hdrs = glob(
+        [
+            "include/clang/**",
+            "include/clang-c/**",
+            "include/llvm/**",
+            "include/llvm-c/**",
+        ],
+        allow_empty = True,
+    ),
+    features = [
+        "-layering_check",
+        "-parse_headers",
+    ],
+    includes = ["include"],
 )
